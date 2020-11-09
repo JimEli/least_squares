@@ -41,7 +41,7 @@ std::vector<double> solveQuadratic(const std::vector<Point>& points)
 {
     double a = 0., b = 0., c = 0., d = 0., e = 0., f = 0., g = 0.;
     double x2 = 0., x3 = 0., x4 = 0.;
-    size_t	n = points.size();
+    size_t n = points.size();
 
     for (size_t i = 0; i < n; i++)
     {
@@ -76,7 +76,7 @@ std::vector<double> solveQuadratic(const std::vector<Point>& points)
 std::vector<double> solveLinear(const std::vector<Point>& points)
 {
     double	a = 0., b = 0., c = 0., d = 0.;
-    double n = points.size();
+    size_t n = points.size();
 
     for (size_t i = 0; i < n; i++)
     {
@@ -105,15 +105,15 @@ static void stats(const std::vector<Point>& pts, const std::vector<double>& coef
 {
     double mu = 0., sigma2 = 0., r = 0.;
     double	ymu, dividend, divisor;
-    size_t i, n = pts.size();
+    size_t n = pts.size();
 
     // mean.
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         mu += fabs(pts[i].y - calcYValue(pts[i].x, coefficients));
     mu /= n;
 
     // variance.
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         sigma2 += pow((mu - (pts[i].y - calcYValue(pts[i].x, coefficients))), 2.0);
     sigma2 /= n;
 
@@ -122,19 +122,19 @@ static void stats(const std::vector<Point>& pts, const std::vector<double>& coef
 
     // y mean.
     ymu = 0.;
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         ymu += pts[i].y;
     ymu /= n;
 
     // variance y prime.
     dividend = 0.;
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         dividend += pow(((calcYValue(pts[i].x, coefficients)) - ymu), 2.0);
     dividend /= n;
 
     // variance y.
     divisor = 0.;
-    for (i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         divisor += pow((pts[i].y - ymu), 2.0);
     divisor /= n;
 
