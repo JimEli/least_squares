@@ -1,3 +1,5 @@
+// Demonstration of least squares linear, quardatic and polynomial regression.
+// 11/9/2020 JME.
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -140,20 +142,6 @@ static void stats(const std::vector<Point>& pts, const std::vector<double>& coef
     r = sqrt(dividend / divisor);
 
     std::cout << "mu = " << mu << "\nsigma2 = " << sigma2 << "\nr = " << r << "\n\n";
-}
-
-void displayVector(const std::vector<double> v)
-{
-    std::cout << "<";
-
-    for (unsigned int i = 0; i < v.size(); i++)
-    {
-        std::cout << v[i];
-        if (i < v.size() - 1)
-            std::cout << ", ";
-    }
-
-    std::cout << ">\n";
 }
 
 void displayMatrix(std::vector<std::vector<double>> matrix)
