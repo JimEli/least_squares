@@ -14,7 +14,6 @@ template <typename T>
 std::vector<T> operator- (std::vector<T> const& first, std::vector<T> const& second)
 {
     std::vector<T> result;
-    result.reserve(first.size());
     std::transform(first.begin(), first.end(), second.begin(), std::back_inserter(result), std::minus<T>());
     return result;
 }
@@ -23,31 +22,25 @@ template <typename T>
 std::vector<T> operator* (std::vector<T> const& first, const double factor)
 {
     std::vector<T> result;
-    result.reserve(first.size());
     std::transform(first.begin(), first.end(), std::back_inserter(result), [factor](double a) { return a * factor; });
     return result;
 }
 
 double T(const std::vector<Point>& points, const double n, const double m)
 {
-    double result = 0;
-    for (auto p : points)
-        result += pow(p.x, n) * pow(p.y, m);
-
-    return result;
+    return std::accumulate(begin(points), end(points), 0., [&](double result, Point p) -> double { return result + pow(p.x, n) * pow(p.y, m); });
 }
 
 std::vector<double> solveQuadratic(const std::vector<Point>& points)
 {
     double a = 0., b = 0., c = 0., d = 0., e = 0., f = 0., g = 0.;
-    double x2 = 0., x3 = 0., x4 = 0.;
-    size_t n = points.size();
+    size_t	n = points.size();
 
     for (size_t i = 0; i < n; i++)
     {
-        x2 = points[i].x * points[i].x;
-        x3 = x2 * points[i].x;
-        x4 = x2 * x2;
+        double x2 = points[i].x * points[i].x;
+        double x3 = x2 * points[i].x;
+        double x4 = x2 * x2;
         a = a + x4;
         b = b + x3;
         c = c + x2;
@@ -57,13 +50,12 @@ std::vector<double> solveQuadratic(const std::vector<Point>& points)
         g = g + points[i].y;
     }
 
-    double 	c2be, e2cn, bdaf, cfbg, acb2, denom;
-    c2be = c * c - b * e;
-    e2cn = e * e - c * n;
-    bdaf = b * d - a * f;
-    cfbg = c * f - b * g;
-    acb2 = a * c - b * b;
-    denom = (b * c - a * e) * c2be - (c * e - b * n) * (b * b - a * c);
+    double c2be = c * c - b * e;
+    double e2cn = e * e - c * n;
+    double bdaf = b * d - a * f;
+    double cfbg = c * f - b * g;
+    double acb2 = a * c - b * b;
+    double denom = (b * c - a * e) * c2be - (c * e - b * n) * (b * b - a * c);
 
     std::vector<double> coefficients;
     coefficients.push_back(((c * d - b * f) * e2cn - (e * f - c * g) * c2be) / (acb2 * e2cn + c2be * c2be));
@@ -87,30 +79,34 @@ std::vector<double> solveLinear(const std::vector<Point>& points)
     }
 
     std::vector<double> coefficients;
-    // m
+    // m and b.
     coefficients.push_back((b * d - c * n) / (b * b - a * n));
-    // b
     coefficients.push_back((b * c - a * d) / (b * b - a * n));
 
     return coefficients;
 }
 
-double calcYValue(double const x1, const std::vector<double>& c)
+double calcYValue(double const x, const std::vector<double>& c)
 {
     size_t i = c.size() - 1;
-    return std::accumulate(c.begin(), c.end(), 0., [&](double a, double b) mutable { return a + b * pow(x1, i--); });
+    return std::accumulate(c.begin(), c.end(), 0., [&](double a, double b) mutable { return a + b * pow(x, i--); });
 }
 
 static void stats(const std::vector<Point>& pts, const std::vector<double>& coefficients)
 {
-    double mu = 0., sigma2 = 0., r = 0.;
-    double	ymu, dividend, divisor;
+    double mu = 0., sigma2 = 0., r = 0., ymu = 0.;
+    double dividend, divisor;
     size_t n = pts.size();
 
-    // mean.
     for (size_t i = 0; i < n; i++)
+    {
+        // mean.
         mu += fabs(pts[i].y - calcYValue(pts[i].x, coefficients));
+        // y mean.
+        ymu += pts[i].y;
+    }
     mu /= n;
+    ymu /= n;
 
     // variance.
     for (size_t i = 0; i < n; i++)
@@ -119,12 +115,6 @@ static void stats(const std::vector<Point>& pts, const std::vector<double>& coef
 
     // standard deviation.
     sigma2 = sqrt(sigma2);
-
-    // y mean.
-    ymu = 0.;
-    for (size_t i = 0; i < n; i++)
-        ymu += pts[i].y;
-    ymu /= n;
 
     // variance y prime.
     dividend = 0.;
