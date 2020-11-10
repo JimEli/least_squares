@@ -94,42 +94,31 @@ double calcYValue(double const x, const std::vector<double>& c)
 
 static void stats(const std::vector<Point>& pts, const std::vector<double>& coefficients)
 {
-    double mu = 0., sigma2 = 0., r = 0., ymu = 0.;
-    double dividend, divisor;
-    size_t n = pts.size();
+    // mean.
+    double mu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + fabs(p.y - calcYValue(p.x, coefficients)); });
+    mu /= points.size();
 
-    for (size_t i = 0; i < n; i++)
-    {
-        // mean.
-        mu += fabs(pts[i].y - calcYValue(pts[i].x, coefficients));
-        // y mean.
-        ymu += pts[i].y;
-    }
-    mu /= n;
-    ymu /= n;
+    // y mean.
+    double ymu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + p.y; });
+    ymu /= points.size();
 
     // variance.
-    for (size_t i = 0; i < n; i++)
-        sigma2 += pow((mu - (pts[i].y - calcYValue(pts[i].x, coefficients))), 2.0);
-    sigma2 /= n;
+    double sigma2 = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((mu - (p.y - calcYValue(p.x, coefficients))), 2.); });
+    sigma2 /= points.size();
 
     // standard deviation.
     sigma2 = sqrt(sigma2);
 
     // variance y prime.
-    dividend = 0.;
-    for (size_t i = 0; i < n; i++)
-        dividend += pow(((calcYValue(pts[i].x, coefficients)) - ymu), 2.0);
-    dividend /= n;
+    double dividend = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow(((calcYValue(p.x, coefficients)) - ymu), 2.); });
+    dividend /= points.size();
 
     // variance y.
-    divisor = 0.;
-    for (size_t i = 0; i < n; i++)
-        divisor += pow((pts[i].y - ymu), 2.0);
-    divisor /= n;
+    double divisor = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((p.y - ymu), 2.); });
+    divisor /= points.size();
 
     // correlation coefficient.
-    r = sqrt(dividend / divisor);
+    double r = sqrt(dividend / divisor);
 
     std::cout << "mu = " << mu << "\nsigma2 = " << sigma2 << "\nr = " << r << "\n\n";
 }
