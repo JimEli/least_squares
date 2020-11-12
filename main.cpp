@@ -3,6 +3,7 @@
 // gnuplot requires c++17 and boost.
 // https://github.com/dstahlke/gnuplot-iostream
 // https://www.boost.org/
+
 #define _CRT_SECURE_NO_WARNINGS // gnuplot.
 #define INCLUDE_GNUPLOT
 
@@ -65,6 +66,7 @@ namespace gnuplotio
 } // namespace gnuplotio
 #endif
 
+// Matrix subtraction.
 template <typename T>
 std::vector<T> operator- (std::vector<T> const& first, std::vector<T> const& second)
 {
@@ -73,6 +75,7 @@ std::vector<T> operator- (std::vector<T> const& first, std::vector<T> const& sec
     return result;
 }
 
+// Matrix multiplication.
 template <typename T>
 std::vector<T> operator* (std::vector<T> const& first, const double factor)
 {
@@ -81,11 +84,13 @@ std::vector<T> operator* (std::vector<T> const& first, const double factor)
     return result;
 }
 
+// Helper to construct square matrix for poly regression.
 double T(const std::vector<Point>& points, const double n, const double m)
 {
     return std::accumulate(begin(points), end(points), 0., [&](double result, Point p) -> double { return result + pow(p.x, n) * pow(p.y, m); });
 }
 
+// Basic quadratic solver.
 std::vector<double> solveQuadratic(const std::vector<Point>& points)
 {
     double a = 0., b = 0., c = 0., d = 0., e = 0., f = 0., g = 0.;
@@ -120,6 +125,7 @@ std::vector<double> solveQuadratic(const std::vector<Point>& points)
     return coefficients;
 }
 
+// Basic linear lsq solver. 
 std::vector<double> solveLinear(const std::vector<Point>& points)
 {
     double	a = 0., b = 0., c = 0., d = 0.;
@@ -141,12 +147,14 @@ std::vector<double> solveLinear(const std::vector<Point>& points)
     return coefficients;
 }
 
+// Calculates y given an x and vector of coefficients.
 double calcYValue(double const x, const std::vector<double>& coefficients)
 {
     size_t n = coefficients.size() - 1;
     return std::accumulate(coefficients.begin(), coefficients.end(), 0., [&](double a, double b) mutable { return a + b * pow(x, n--); });
 }
 
+// Produce and display statisical information about a given fit.
 static void stats(const std::vector<Point>& points, const std::vector<double>& coefficients)
 {
     // mean.
