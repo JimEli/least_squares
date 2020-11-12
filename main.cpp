@@ -1,5 +1,11 @@
 // Demonstration of least squares linear, quardatic and polynomial regression.
 // 11/9/2020 JME.
+// gnuplot requires c++17 and boost.
+// https://github.com/dstahlke/gnuplot-iostream
+// https://www.boost.org/
+#define _CRT_SECURE_NO_WARNINGS // gnuplot.
+#define INCLUDE_GNUPLOT
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -7,8 +13,57 @@
 #include <algorithm>
 #include <numeric>
 #include <string>
+#include <cassert>
 
-struct Point { double x, y; };
+struct Point
+{
+    Point() : x(0), y(0) { }
+    Point(double x_, double y_) : x(x_), y(y_) { }
+
+    double x, y;
+};
+
+#ifdef INCLUDE_GNUPLOT
+// Warn about use of deprecated gnuplot functions.
+#define GNUPLOT_DEPRECATE_WARN
+#include "gnuplot-iostream.h"
+
+// Tells gnuplot-iostream how to print objects of class Point.
+namespace gnuplotio 
+{
+    template<>
+    struct BinfmtSender<Point> 
+    {
+        static void send(std::ostream& stream) 
+        {
+            BinfmtSender::send(stream);
+            BinfmtSender::send(stream);
+        }
+    };
+
+    template <>
+    struct BinarySender<Point> 
+    {
+        static void send(std::ostream& stream, const Point& v) 
+        {
+            BinarySender<double>::send(stream, v.x);
+            BinarySender<double>::send(stream, v.y);
+        }
+    };
+
+    template<>
+    struct TextSender<Point> 
+    {
+        static void send(std::ostream& stream, const Point& v) 
+        {
+            TextSender<double>::send(stream, v.x);
+            stream << " ";
+            TextSender<double>::send(stream, v.y);
+            stream << " ";
+        }
+    };
+} // namespace gnuplotio
+#endif
 
 template <typename T>
 std::vector<T> operator- (std::vector<T> const& first, std::vector<T> const& second)
@@ -68,7 +123,7 @@ std::vector<double> solveQuadratic(const std::vector<Point>& points)
 std::vector<double> solveLinear(const std::vector<Point>& points)
 {
     double	a = 0., b = 0., c = 0., d = 0.;
-    size_t n = points.size();
+    double n = points.size();
 
     for (size_t i = 0; i < n; i++)
     {
@@ -79,44 +134,33 @@ std::vector<double> solveLinear(const std::vector<Point>& points)
     }
 
     std::vector<double> coefficients;
-    // m and b.
+    // m and b [y = mx + b].
     coefficients.push_back((b * d - c * n) / (b * b - a * n));
     coefficients.push_back((b * c - a * d) / (b * b - a * n));
 
     return coefficients;
 }
 
-double calcYValue(double const x, const std::vector<double>& c)
+double calcYValue(double const x, const std::vector<double>& coefficients)
 {
-    size_t i = c.size() - 1;
-    return std::accumulate(c.begin(), c.end(), 0., [&](double a, double b) mutable { return a + b * pow(x, i--); });
+    size_t n = coefficients.size() - 1;
+    return std::accumulate(coefficients.begin(), coefficients.end(), 0., [&](double a, double b) mutable { return a + b * pow(x, n--); });
 }
 
-static void stats(const std::vector<Point>& pts, const std::vector<double>& coefficients)
+static void stats(const std::vector<Point>& points, const std::vector<double>& coefficients)
 {
     // mean.
-    double mu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + fabs(p.y - calcYValue(p.x, coefficients)); });
-    mu /= points.size();
-
+    double mu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + fabs(p.y - calcYValue(p.x, coefficients)); }) / points.size();
     // y mean.
-    double ymu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + p.y; });
-    ymu /= points.size();
-
+    double ymu = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + p.y; })/ points.size();
     // variance.
-    double sigma2 = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((mu - (p.y - calcYValue(p.x, coefficients))), 2.); });
-    sigma2 /= points.size();
-
+    double sigma2 = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((mu - (p.y - calcYValue(p.x, coefficients))), 2.); }) / points.size();
     // standard deviation.
     sigma2 = sqrt(sigma2);
-
     // variance y prime.
-    double dividend = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow(((calcYValue(p.x, coefficients)) - ymu), 2.); });
-    dividend /= points.size();
-
+    double dividend = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow(((calcYValue(p.x, coefficients)) - ymu), 2.); }) / points.size();
     // variance y.
-    double divisor = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((p.y - ymu), 2.); });
-    divisor /= points.size();
-
+    double divisor = std::accumulate(begin(points), end(points), 0., [&](double a, Point p) -> double { return a + pow((p.y - ymu), 2.); }) / points.size();
     // correlation coefficient.
     double r = sqrt(dividend / divisor);
 
@@ -228,6 +272,26 @@ int main(int argc, char** argv)
 
         displayCoefficients(coefficients, degree);
         stats(points, coefficients);
+
+#ifdef INCLUDE_GNUPLOT
+        // Use gnuplot to graph points and fit.
+        Gnuplot gp;
+        std::vector<std::pair<double, double>> f;
+
+        // Fit.
+        for (auto pts : points)
+            f.emplace_back(pts.x, calcYValue(pts.x, coefficients));
+        // Construct plot.
+        gp << "set xrange [-2:10]\nset yrange [-5:10]\n"; //gp << "set autoscale\n";
+        gp << "set title \"Data and LSQ Fit\"\n";
+        gp << "set tics out\n set grid\n";
+        gp << "set style line 1 lt 3 lw 3 lc rgb 'red'\n";
+        gp << "plot '-' with points title 'points' pt 4 lw 1 lc rgb 'blue', '-' with lines smooth csplines title 'fit' ls 1\n";
+        // Points.
+        gp.send1d(points);
+        // Fit.
+        gp.send1d(f);
+#endif
     }
 
     // Perform a quadratic fit.
@@ -242,6 +306,8 @@ int main(int argc, char** argv)
         std::vector<double> coefficients = solveLinear(points);
         displayCoefficients(coefficients, 1);
         stats(points, coefficients);
+        //for (auto p : points)
+            //std::cout << p.x << ", " << calcYValue(p.x, coefficients) << std::endl;
     }
 
     return 0;
