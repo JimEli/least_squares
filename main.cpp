@@ -30,12 +30,12 @@ struct Point
 #include "gnuplot-iostream.h"
 
 // Tells gnuplot-iostream how to print objects of class Point.
-namespace gnuplotio 
+namespace gnuplotio
 {
     template<>
-    struct BinfmtSender<Point> 
+    struct BinfmtSender<Point>
     {
-        static void send(std::ostream& stream) 
+        static void send(std::ostream& stream)
         {
             BinfmtSender::send(stream);
             BinfmtSender::send(stream);
@@ -43,9 +43,9 @@ namespace gnuplotio
     };
 
     template <>
-    struct BinarySender<Point> 
+    struct BinarySender<Point>
     {
-        static void send(std::ostream& stream, const Point& v) 
+        static void send(std::ostream& stream, const Point& v)
         {
             BinarySender<double>::send(stream, v.x);
             BinarySender<double>::send(stream, v.y);
@@ -53,9 +53,9 @@ namespace gnuplotio
     };
 
     template<>
-    struct TextSender<Point> 
+    struct TextSender<Point>
     {
-        static void send(std::ostream& stream, const Point& v) 
+        static void send(std::ostream& stream, const Point& v)
         {
             TextSender<double>::send(stream, v.x);
             stream << " ";
@@ -64,6 +64,30 @@ namespace gnuplotio
         }
     };
 } // namespace gnuplotio
+
+// Prototype of function used here.
+double calcYValue(double const, const std::vector<double>&);
+
+// Use gnuplot to graph points and fit.
+void plot(std::vector<Point> points, std::vector<double> coefficients)
+{
+    Gnuplot gp;
+    std::vector<std::pair<double, double>> fit;
+
+    // Fit.
+    for (auto pts : points)
+        fit.emplace_back(pts.x, calcYValue(pts.x, coefficients));
+    // Construct plot.
+    gp << "set xrange [-2:10]\nset yrange [-5:10]\n"; //gp << "set autoscale\n";
+    gp << "set title \"Data and LSQ Fit\"\n";
+    gp << "set tics out\n set grid\n";
+    gp << "set style line 1 lt 3 lw 3 lc rgb 'red'\n";
+    gp << "plot '-' with points title 'points' pt 4 lw 1 lc rgb 'blue', '-' with lines smooth csplines title 'fit' ls 1\n";
+    // Points.
+    gp.send1d(points);
+    // Fit.
+    gp.send1d(fit);
+}
 #endif
 
 // Matrix subtraction.
@@ -280,25 +304,10 @@ int main(int argc, char** argv)
 
         displayCoefficients(coefficients, degree);
         stats(points, coefficients);
-
+        
 #ifdef INCLUDE_GNUPLOT
-        // Use gnuplot to graph points and fit.
-        Gnuplot gp;
-        std::vector<std::pair<double, double>> f;
-
-        // Fit.
-        for (auto pts : points)
-            f.emplace_back(pts.x, calcYValue(pts.x, coefficients));
-        // Construct plot.
-        gp << "set xrange [-2:10]\nset yrange [-5:10]\n"; //gp << "set autoscale\n";
-        gp << "set title \"Data and LSQ Fit\"\n";
-        gp << "set tics out\n set grid\n";
-        gp << "set style line 1 lt 3 lw 3 lc rgb 'red'\n";
-        gp << "plot '-' with points title 'points' pt 4 lw 1 lc rgb 'blue', '-' with lines smooth csplines title 'fit' ls 1\n";
-        // Points.
-        gp.send1d(points);
-        // Fit.
-        gp.send1d(f);
+        // Example plot of results.
+        plot(points, coefficients);
 #endif
     }
 
