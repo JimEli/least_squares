@@ -6,7 +6,7 @@ Includes code to send data to gnuplot to view result in graphic form.
 This functionality requires:
 <ol>
   <li>Boost</li> 
-  <li>[gnuplot-iostream](https://github.com/dstahlke/gnuplot-iostream)</li>
+  <li><p><a href="https://github.com/dstahlke/gnuplot-iostream">gnuplot-iostream</a>.</p></li>
   <li>C++17 (see notes inside main.cpp file)</li>
 </ol>
 
